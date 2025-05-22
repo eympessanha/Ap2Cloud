@@ -1,0 +1,49 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy JAR app to Azure Web App - ibmec-trading
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java version
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Install Docker Compose
+        run: |
+          DOCKER_COMPOSE_VERSION=2.20.2
+          sudo curl -L "https://github.com/docker/compose/releases/download/v$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose version
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+      
+      - name: Login Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ibmecdockerimage.azurecr.io
+          username: ${{secrets.AZURE_CONTAINER_REGISTRY_USERNAME}}
+          password: ${{secrets.AZURE_CONTAINER_REGISTRY_PASSWORD}}
+      
+      - name: Build Docker image and Push
+        run: |
+          docker-compose build
+          docker tag ibmec-projeto-cloud-20251-trading-bot-app:latest ibmecdockerimage.azurecr.io/ibmec-trading:latest
+          docker push ibmecdockerimage.azurecr.io/ibmec-trading:latest
+
