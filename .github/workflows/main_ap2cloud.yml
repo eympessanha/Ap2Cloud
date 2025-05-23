@@ -1,0 +1,51 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - ap2cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: https://ap2cloud.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_2cb58ecbc80c4f56a32846085d40141c }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_8f3843c3f90d4bb7bd6ae4aaac1554bd }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: ap2cloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_2cb58ecbc80c4f56a32846085d40141c }}/ap2cloud-app:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'ap2cloud'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_6e7b692d231e4fd79088fa9c818c2a7a }}
+        images: 'ap2cloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_2cb58ecbc80c4f56a32846085d40141c }}/ap2cloud-app:${{ github.sha }}'
