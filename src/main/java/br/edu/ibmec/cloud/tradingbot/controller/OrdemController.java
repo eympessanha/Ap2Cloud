@@ -1,88 +1,44 @@
 package br.edu.ibmec.cloud.tradingbot.controller;
 
-import br.edu.ibmec.cloud.tradingbot.modelo.Usuario;
-import br.edu.ibmec.cloud.tradingbot.modelo.RelatorioOrdemUsuario;
-import br.edu.ibmec.cloud.tradingbot.repositorio.UsuarioRepositorio;
-import br.edu.ibmec.cloud.tradingbot.repositorio.RelatorioOrdemUsuarioRepositorio;
-import br.edu.ibmec.cloud.tradingbot.requisicao.OrdemRequisicao;
-import br.edu.ibmec.cloud.tradingbot.resposta.OrdemResposta;
-import br.edu.ibmec.cloud.tradingbot.servico.BinanceServico;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import br.edu.ibmec.cloud.tradingbot.dto.OrdemDTOs.*;
+import br.edu.ibmec.cloud.tradingbot.servico.OrdemServico;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 @RestController
-@RequestMapping("{identificador}/ordem")
+@RequestMapping("/ordem") // Endpoint raiz da API de ordem
 public class OrdemController {
 
     @Autowired
-    private UsuarioRepositorio usuarioRepositorio;
+    private OrdemServico ordemServico;
 
-    @Autowired
-    private RelatorioOrdemUsuarioRepositorio relatorioOrdemUsuarioRepositorio;
+    // POST /ordem/{usuario_id} - Criar Ordem
+    @PostMapping("/{usuario_id}")
+    public ResponseEntity<OrdemCriadaResposta> criarOrdem(@PathVariable("usuario_id") Integer usuarioId, @RequestBody OrdemRequisicao requisicao) {
+        OrdemCriadaResposta resposta = ordemServico.criarOrdem(usuarioId, requisicao);
+        return new ResponseEntity<>(resposta, HttpStatus.CREATED);
+    }
 
-    @Autowired
-    private BinanceServico binanceServico;
+    // GET /ordem/{usuario_id} - Listar Ordens
+    @GetMapping("/{usuario_id}")
+    public ResponseEntity<ListaOrdensResposta> listarOrdens(@PathVariable("usuario_id") Integer usuarioId) {
+        ListaOrdensResposta resposta = ordemServico.listarOrdens(usuarioId);
+        return new ResponseEntity<>(resposta, HttpStatus.OK);
+    }
 
-    @PostMapping
-    public ResponseEntity<OrdemResposta> enviarOrdem(@PathVariable("identificador") int usuarioId, @RequestBody OrdemRequisicao requisicao) {
-        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(usuarioId);
+    // GET /ordem/{usuario_id}/{ordem_id} - Obter Ordem Específica
+    @GetMapping("/{usuario_id}/{ordem_id}")
+    public ResponseEntity<OrdemDetalheResposta> obterOrdemEspecifica(@PathVariable("usuario_id") Integer usuarioId, @PathVariable("ordem_id") String ordemId) {
+        OrdemDetalheResposta resposta = ordemServico.obterOrdemEspecifica(usuarioId, ordemId);
+        return new ResponseEntity<>(resposta, HttpStatus.OK);
+    }
 
-        if (usuarioOpt.isEmpty())
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        Usuario usuario = usuarioOpt.get();
-
-        binanceServico.setApiKey(usuario.getChaveApiBinance());
-        binanceServico.setSecretKey(usuario.getChaveSecretaBinance());
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        try {
-            String resultado = binanceServico.criarOrdemMercado(
-                    requisicao.getSimbolo(),
-                    requisicao.getQuantidade(),
-                    requisicao.getTipo()
-            );
-            OrdemResposta resposta = mapper.readValue(resultado, OrdemResposta.class);
-
-            if ("BUY".equals(requisicao.getTipo())) {
-                RelatorioOrdemUsuario relatorio = new RelatorioOrdemUsuario();
-                relatorio.setSimbolo(requisicao.getSimbolo());
-                relatorio.setQuantidade(requisicao.getQuantidade());
-                relatorio.setPrecoCompra(resposta.getFills().get(0).getPreco());
-                relatorio.setDataOperacao(LocalDateTime.now());
-
-                relatorioOrdemUsuarioRepositorio.save(relatorio);
-
-                usuario.getRelatoriosOrdens().add(relatorio);
-                usuarioRepositorio.save(usuario);
-            }
-
-            if ("SELL".equals(requisicao.getTipo())) {
-                RelatorioOrdemUsuario ordemCompra = null;
-                for (RelatorioOrdemUsuario item : usuario.getRelatoriosOrdens()) {
-                    if (item.getSimbolo().equals(requisicao.getSimbolo()) && item.getPrecoVenda() == 0) {
-                        ordemCompra = item;
-                        break;
-                    }
-                }
-                if (ordemCompra != null) {
-                    ordemCompra.setPrecoVenda(resposta.getFills().get(0).getPreco());
-                    relatorioOrdemUsuarioRepositorio.save(ordemCompra);
-                }
-            }
-
-            return new ResponseEntity<>(resposta, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+    // GET /ordem/relatorios/{usuario_id}/abertos - Listar Ordens Abertas
+    @GetMapping("/{usuario_id}/abertos")
+    public ResponseEntity<ListaOrdensAbertasResposta> listarOrdensAbertas(@PathVariable("usuario_id") Integer usuarioId) {
+        ListaOrdensAbertasResposta resposta = ordemServico.listarOrdensAbertas(usuarioId);
+        return new ResponseEntity<>(resposta, HttpStatus.OK);
     }
 }

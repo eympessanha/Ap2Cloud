@@ -1,75 +1,62 @@
 package br.edu.ibmec.cloud.tradingbot.controller;
 
-import br.edu.ibmec.cloud.tradingbot.modelo.Usuario;
-import br.edu.ibmec.cloud.tradingbot.modelo.ConfiguracaoUsuario;
-import br.edu.ibmec.cloud.tradingbot.modelo.TickerUsuario;
-import br.edu.ibmec.cloud.tradingbot.repositorio.ConfiguracaoUsuarioRepositorio;
-import br.edu.ibmec.cloud.tradingbot.repositorio.UsuarioRepositorio;
-import br.edu.ibmec.cloud.tradingbot.repositorio.TickerUsuarioRepositorio;
+import br.edu.ibmec.cloud.tradingbot.dto.UsuarioDTOs.*;
+import br.edu.ibmec.cloud.tradingbot.resposta.MensagemResposta;
+import br.edu.ibmec.cloud.tradingbot.servico.UsuarioServico;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
-@RequestMapping("/usuarios")
+@RequestMapping("/usuario") // Endpoint raiz da API de usuário
 public class UsuarioController {
 
     @Autowired
-    private UsuarioRepositorio usuarioRepositorio;
+    private UsuarioServico usuarioServico;
 
-    @Autowired
-    private ConfiguracaoUsuarioRepositorio configuracaoUsuarioRepositorio;
-
-    @Autowired
-    private TickerUsuarioRepositorio tickerUsuarioRepositorio;
-
+    // POST /usuario - Criar Usuário
     @PostMapping
-    public ResponseEntity<Usuario> criar(@RequestBody Usuario usuario) {
-        usuarioRepositorio.save(usuario);
-        return new ResponseEntity<>(usuario, HttpStatus.CREATED);
+    public ResponseEntity<UsuarioCriadoResposta> criarUsuario(@RequestBody CriarUsuarioRequisicao requisicao) {
+        UsuarioCriadoResposta resposta = usuarioServico.criarUsuario(requisicao);
+        return new ResponseEntity<>(resposta, HttpStatus.CREATED);
     }
 
-    @GetMapping("{identificador}")
-    public ResponseEntity<Usuario> buscarPorId(@PathVariable("identificador") Integer identificador) {
-        return usuarioRepositorio.findById(identificador)
-                .map(u -> new ResponseEntity<>(u, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
-    @PostMapping("{identificador}/configuracao")
-    public ResponseEntity<Usuario> associarConfiguracao(@PathVariable("identificador") Integer identificador, @RequestBody ConfiguracaoUsuario configuracao) {
-        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(identificador);
-
-        if (usuarioOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    // POST /usuario/login - Login de Usuário
+    @PostMapping("/login")
+    public ResponseEntity<LoginResposta> loginUsuario(@RequestBody LoginRequisicao requisicao) {
+        LoginResposta resposta = usuarioServico.fazerLogin(requisicao);
+        if (resposta.isSuccess()) {
+            return new ResponseEntity<>(resposta, HttpStatus.OK);
         }
-
-        configuracaoUsuarioRepositorio.save(configuracao);
-
-        Usuario usuario = usuarioOpt.get();
-        usuario.getConfiguracoes().add(configuracao);
-        usuarioRepositorio.save(usuario);
-
-        return new ResponseEntity<>(usuario, HttpStatus.CREATED);
+        return new ResponseEntity<>(resposta, HttpStatus.UNAUTHORIZED); // Ou HttpStatus.BAD_REQUEST, dependendo da granularidade
     }
 
-    @PostMapping("{identificador}/ticker")
-    public ResponseEntity<Usuario> associarTicker(@PathVariable("identificador") Integer identificador, @RequestBody TickerUsuario ticker) {
-        Optional<Usuario> usuarioOpt = usuarioRepositorio.findById(identificador);
+    // GET /usuario/{usuario_id} - Obter Usuário
+    @GetMapping("/{usuario_id}")
+    public ResponseEntity<UsuarioDetalhesResposta> obterUsuario(@PathVariable("usuario_id") Integer usuarioId) {
+        UsuarioDetalhesResposta usuario = usuarioServico.obterUsuario(usuarioId);
+        return new ResponseEntity<>(usuario, HttpStatus.OK);
+    }
 
-        if (usuarioOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+    // DELETE /usuario/{usuario_id} - Excluir Usuário
+    @DeleteMapping("/{usuario_id}")
+    public ResponseEntity<MensagemResposta> excluirUsuario(@PathVariable("usuario_id") Integer usuarioId) {
+        MensagemResposta resposta = usuarioServico.excluirUsuario(usuarioId);
+        return new ResponseEntity<>(resposta, HttpStatus.OK);
+    }
 
-        tickerUsuarioRepositorio.save(ticker);
+    // GET /usuario/{usuario_id}/config - Obter Configurações do Usuário
+    @GetMapping("/{usuario_id}/config")
+    public ResponseEntity<ConfiguracaoUsuarioResposta> obterConfiguracoesUsuario(@PathVariable("usuario_id") Integer usuarioId) {
+        ConfiguracaoUsuarioResposta configuracao = usuarioServico.obterConfiguracoes(usuarioId);
+        return new ResponseEntity<>(configuracao, HttpStatus.OK);
+    }
 
-        Usuario usuario = usuarioOpt.get();
-        usuario.getTickers().add(ticker);
-        usuarioRepositorio.save(usuario);
-
-        return new ResponseEntity<>(usuario, HttpStatus.CREATED);
+    // PUT /usuario/{usuario_id}/config - Atualizar Configurações do Usuário
+    @PutMapping("/{usuario_id}/config")
+    public ResponseEntity<MensagemResposta> atualizarConfiguracoesUsuario(@PathVariable("usuario_id") Integer usuarioId, @RequestBody ConfiguracaoUsuarioRequisicao requisicao) {
+        MensagemResposta resposta = usuarioServico.atualizarConfiguracoes(usuarioId, requisicao);
+        return new ResponseEntity<>(resposta, HttpStatus.OK);
     }
 }
