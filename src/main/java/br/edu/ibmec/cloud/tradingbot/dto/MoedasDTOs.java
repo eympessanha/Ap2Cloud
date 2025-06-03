@@ -5,18 +5,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
 
-public class MoedasAtivasDTOs {
+public class MoedasDTOs {
 
-    // --- Requisição ---
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class AdicionarMoedaAtivaRequisicao {
-        private String simbolo; // Para uma única moeda
-        private List<String> simbolos; // Para múltiplas moedas
+        private String simbolo; // única moeda
+        private List<String> simbolos; // múltiplas moedas
     }
 
-    // --- Respostas ---
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -30,7 +28,7 @@ public class MoedasAtivasDTOs {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MoedaAtivaDetalheResposta {
-        private Integer id; // ID do TickerUsuario
+        private Integer id;
         private String simbolo;
         private double ultimo_preco;
     }

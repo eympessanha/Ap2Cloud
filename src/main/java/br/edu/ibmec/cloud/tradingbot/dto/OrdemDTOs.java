@@ -1,4 +1,5 @@
 package br.edu.ibmec.cloud.tradingbot.dto;
+import br.edu.ibmec.cloud.tradingbot.dto.BinanceApiDTOs.PreenchimentoResposta;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,37 +7,32 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// IMPORT A SER ADICIONADO
-import br.edu.ibmec.cloud.tradingbot.dto.BinanceApiDTOs.PreenchimentoResposta; // <<== ADICIONE ESTA LINHA
-
 public class OrdemDTOs {
 
-    // --- Requisição ---
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrdemRequisicao {
         private String simbolo;
-        private String tp_operacao; // "COMPRA" ou "VENDA"
+        private String tp_operacao; // (COMPRA,VENDA)
         private double quantidade;
-        private String tipo; // "MERCADO" ou "LIMITE"
-        private Double preco; // Opcional, usado para ordens tipo "LIMITE"
+        private String tipo; // (MERCADO,LIMITE)
+        private Double preco;
     }
 
-    // --- Respostas ---
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrdemCriadaResposta {
         private String message;
-        private String ordem_id; // ID da ordem na Binance
+        private String ordem_id;
         private String simbolo;
-        private String tipo; // Tipo de ordem (MERCADO, LIMITE)
-        private String tp_operacao; // Tipo de operação (COMPRA, VENDA)
+        private String tipo; // (MERCADO, LIMITE)
+        private String tp_operacao; // (COMPRA, VENDA)
         private double quantidade;
-        private double preco; // Preço médio de execução
-        private String status; // Status da ordem (EXECUTADA, PENDENTE)
-        private List<PreenchimentoResposta> fills; // Agora o tipo será reconhecido
+        private double preco;
+        private String status; // (EXECUTADA, PENDENTE)
+        private List<PreenchimentoResposta> fills;
     }
 
     @Data
@@ -44,13 +40,13 @@ public class OrdemDTOs {
     @AllArgsConstructor
     public static class OrdemDetalheResposta {
         private String simbolo;
-        private String ordem_id; // ID da ordem na Binance
+        private String ordem_id;
         private double qtd_executada;
-        private String tipo; // Tipo de ordem (MERCADO, LIMITE)
-        private String tp_operacao; // Tipo de operação (COMPRA, VENDA)
-        private double preco; // Preço médio de execução
-        private String status; // Status da ordem
-        private List<PreenchimentoResposta> fills; // Agora o tipo será reconhecido
+        private String tipo; // (MERCADO, LIMITE)
+        private String tp_operacao; // (COMPRA, VENDA)
+        private double preco;
+        private String status; // (EM CARTEIRA, VENDIDA)
+        private List<PreenchimentoResposta> fills;
     }
 
     @Data
@@ -65,12 +61,12 @@ public class OrdemDTOs {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrdemAbertaDetalheResposta {
-        private Integer id; // ID do RelatorioOrdemUsuario
+        private Integer id;
         private String moeda;
         private double quantidade;
         private double preco_compra;
         private LocalDateTime data_operacao;
-        private String status; // "EM CARTEIRA"
+        private String status; // (EM CARTEIRA)
     }
 
     @Data

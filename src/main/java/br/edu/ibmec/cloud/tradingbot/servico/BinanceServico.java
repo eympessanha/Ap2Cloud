@@ -31,14 +31,19 @@ public class BinanceServico {
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    /**
+     * @param simbolos Lista de símbolos/tickers
+     * @return Lista de MoedaResposta com o símbolo e o último preço
+     */
     public List<TickerResposta> obterTickers(List<String> simbolos) {
         SpotClient client = new SpotClientImpl(apiKey, secretKey, baseUrl);
         Map<String, Object> parameters = new LinkedHashMap<>();
 
-        // CORREÇÃO AQUI: Passe a lista diretamente, não como String JSON
         parameters.put("symbols", simbolos);
 
         String result = client.createMarket().ticker24H(parameters);
+
+        System.err.println("Resposta Bruta da Binance (obterTickers): " + result);
 
         try {
             return objectMapper.readValue(result, objectMapper.getTypeFactory().constructCollectionType(List.class, TickerResposta.class));
@@ -48,11 +53,17 @@ public class BinanceServico {
         }
     }
 
+    /**
+     * @param simbolo Símbolo do par de trading (ex: "BTCUSDT")
+     * @param quantidade Quantidade a ser negociada
+     * @param tipoOperacaoBinance Tipo de operação na Binance ("BUY" ou "SELL")
+     * @return Objeto BinanceOrdemResposta com os detalhes da ordem criada
+     */
     public BinanceOrdemResposta criarOrdemMercado(String simbolo, double quantidade, String tipoOperacaoBinance) {
         SpotClient client = new SpotClientImpl(apiKey, secretKey, baseUrl);
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("symbol", simbolo);
-        parameters.put("side", tipoOperacaoBinance); // "BUY" ou "SELL"
+        parameters.put("side", tipoOperacaoBinance);
         parameters.put("type", "MARKET");
         parameters.put("quantity", quantidade);
         String result = client.createTrade().newOrder(parameters);
@@ -60,10 +71,13 @@ public class BinanceServico {
             return objectMapper.readValue(result, BinanceOrdemResposta.class);
         } catch (Exception e) {
             System.err.println("Erro ao criar ordem na Binance: " + result);
-            throw new RuntimeException("Erro ao processar resposta da Binance para ordem", e);
+            throw new RuntimeException("Erro ao processar resposta da Binance para ordem: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * @return Lista de Strings com os símbolos dos pares de trading (ex: "BTCUSDT")
+     */
     public List<String> obterParesDeTradingDisponiveis() {
         SpotClient publicClient = new SpotClientImpl(baseUrl);
         String exchangeInfo = publicClient.createMarket().exchangeInfo(new LinkedHashMap<>());
@@ -84,6 +98,10 @@ public class BinanceServico {
         }
     }
 
+    /**
+     * @param simbolo Símbolo do par de trading (ex: "BTCUSDT")
+     * @return Quantidade mínima para negociação
+     */
     public double obterQuantidadeMinima(String simbolo) {
         SpotClient publicClient = new SpotClientImpl(baseUrl);
         String exchangeInfo = publicClient.createMarket().exchangeInfo(new LinkedHashMap<>());
@@ -108,6 +126,34 @@ public class BinanceServico {
         } catch (Exception e) {
             System.err.println("Erro ao obter quantidade mínima da Binance para " + simbolo + ". Resposta: " + exchangeInfo);
             throw new RuntimeException("Erro ao processar resposta da Binance para quantidade mínima: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * @param asset Símbolo do ativo (ex: "USDT", "BTC")
+     * @return Saldo disponível do ativo
+     */
+    public double obterSaldoRealDaConta(String asset) {
+        SpotClient client = new SpotClientImpl(apiKey, secretKey, baseUrl);
+        LinkedHashMap<String, Object> parameters = new LinkedHashMap<>();
+        String accountInfo = client.createTrade().account(parameters);
+
+        try {
+            JsonNode root = objectMapper.readTree(accountInfo);
+            JsonNode balances = root.get("balances");
+            if (balances != null && balances.isArray()) {
+                for (JsonNode balanceNode : balances) {
+                    if (balanceNode.has("asset") && balanceNode.get("asset").asText().equals(asset)) {
+                        if (balanceNode.has("free")) {
+                            return balanceNode.get("free").asDouble();
+                        }
+                    }
+                }
+            }
+            return 0.0; 
+        } catch (Exception e) {
+            System.err.println("Erro ao obter balanço da Binance para " + asset + ": " + accountInfo);
+            throw new RuntimeException("Erro ao processar balanço da Binance: " + e.getMessage(), e);
         }
     }
 }

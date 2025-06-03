@@ -4,10 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-// Este arquivo conterá todas as classes DTO relacionadas ao usuário
 public class UsuarioDTOs {
 
-    // --- Requisições ---
 
     @Data
     @NoArgsConstructor
@@ -39,7 +37,6 @@ public class UsuarioDTOs {
         private Double pct_perda;
     }
 
-    // --- Respostas ---
 
     @Data
     @NoArgsConstructor
@@ -64,7 +61,7 @@ public class UsuarioDTOs {
     public static class UsuarioDetalhesResposta {
         private Integer usuario_id;
         private String usuario_login;
-        private Double usuario_saldo; // Será um valor mockado ou obtido via Binance, por enquanto.
+        private Double usuario_saldo;
         private boolean has_binance_keys;
     }
 

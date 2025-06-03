@@ -8,34 +8,34 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/ordem") // Endpoint raiz da API de ordem
+@RequestMapping("/ordem")
 public class OrdemController {
 
     @Autowired
     private OrdemServico ordemServico;
 
-    // POST /ordem/{usuario_id} - Criar Ordem
+    // Criar ordem
     @PostMapping("/{usuario_id}")
     public ResponseEntity<OrdemCriadaResposta> criarOrdem(@PathVariable("usuario_id") Integer usuarioId, @RequestBody OrdemRequisicao requisicao) {
         OrdemCriadaResposta resposta = ordemServico.criarOrdem(usuarioId, requisicao);
         return new ResponseEntity<>(resposta, HttpStatus.CREATED);
     }
 
-    // GET /ordem/{usuario_id} - Listar Ordens
+    // Listar ordens
     @GetMapping("/{usuario_id}")
     public ResponseEntity<ListaOrdensResposta> listarOrdens(@PathVariable("usuario_id") Integer usuarioId) {
         ListaOrdensResposta resposta = ordemServico.listarOrdens(usuarioId);
         return new ResponseEntity<>(resposta, HttpStatus.OK);
     }
 
-    // GET /ordem/{usuario_id}/{ordem_id} - Obter Ordem Específica
+    // Ordem específica
     @GetMapping("/{usuario_id}/{ordem_id}")
     public ResponseEntity<OrdemDetalheResposta> obterOrdemEspecifica(@PathVariable("usuario_id") Integer usuarioId, @PathVariable("ordem_id") String ordemId) {
         OrdemDetalheResposta resposta = ordemServico.obterOrdemEspecifica(usuarioId, ordemId);
         return new ResponseEntity<>(resposta, HttpStatus.OK);
     }
 
-    // GET /ordem/relatorios/{usuario_id}/abertos - Listar Ordens Abertas
+    // Listar prdens abertas (em carteira)
     @GetMapping("/{usuario_id}/abertos")
     public ResponseEntity<ListaOrdensAbertasResposta> listarOrdensAbertas(@PathVariable("usuario_id") Integer usuarioId) {
         ListaOrdensAbertasResposta resposta = ordemServico.listarOrdensAbertas(usuarioId);

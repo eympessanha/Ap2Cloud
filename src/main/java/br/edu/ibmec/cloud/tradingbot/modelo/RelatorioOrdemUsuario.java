@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 public class RelatorioOrdemUsuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int identificador; // ID local do banco de dados
+    private int identificador;
 
     @Column
-    private String ordemIdBinance; // ID da ordem na Binance (String)
+    private String ordemIdBinance;
 
     @Column(nullable = false)
     private String simbolo;
@@ -24,18 +24,18 @@ public class RelatorioOrdemUsuario {
     private double precoCompra;
 
     @Column
-    private double precoVenda; // Pode ser 0 ou null se a ordem ainda não foi vendida
+    private double precoVenda;
 
     @Column(nullable = false)
     private LocalDateTime dataOperacao;
 
     @Column(nullable = false)
-    private String status; // Ex: "EM_CARTEIRA", "VENDIDA", "CANCELADA", etc.
+    private String status;
 
-    @Column // Novo campo para o tipo de operação (COMPRA/VENDA)
+    @Column
     private String tpOperacao;
 
-    @Column // Novo campo para o tipo de ordem (MERCADO/LIMITE)
+    @Column 
     private String tipoOrdem;
 
     @ManyToOne

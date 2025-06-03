@@ -16,7 +16,6 @@ public class BinanceApiDTOs {
         private double quantidade;
     }
 
-    // Esta classe é a resposta direta da API da Binance para uma ordem
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -24,17 +23,17 @@ public class BinanceApiDTOs {
         @JsonProperty("symbol")
         private String simbolo;
         @JsonProperty("orderId")
-        private String ordemId; // ID da ordem na Binance
+        private String ordemId;
         @JsonProperty("status")
         private String status;
         @JsonProperty("type")
-        private String tipo; // Tipo de ordem (MARKET, LIMIT)
+        private String tipo; // (MARKET, LIMIT)
         @JsonProperty("side")
-        private String lado; // Lado da operação (BUY, SELL)
+        private String lado; // (BUY, SELL)
         @JsonProperty("executedQty")
-        private double quantidadeExecutada; // Quantidade executada
+        private double quantidadeExecutada;
         @JsonProperty("cummulativeQuoteQty")
-        private double precoMedioExecucao; // Preço médio ponderado ou valor total de cotação
+        private double precoMedioExecucao;
         @JsonProperty("fills")
         private List<PreenchimentoResposta> fills;
     }

@@ -6,6 +6,10 @@ import br.edu.ibmec.cloud.tradingbot.modelo.Usuario;
 import br.edu.ibmec.cloud.tradingbot.repositorio.ConfiguracaoUsuarioRepositorio;
 import br.edu.ibmec.cloud.tradingbot.repositorio.UsuarioRepositorio;
 import br.edu.ibmec.cloud.tradingbot.resposta.MensagemResposta;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,9 @@ public class UsuarioServico {
     @Autowired
     private ConfiguracaoUsuarioRepositorio configuracaoUsuarioRepositorio;
 
+    @Autowired
+    private BinanceServico binanceServico;
+
     public UsuarioCriadoResposta criarUsuario(CriarUsuarioRequisicao requisicao) {
         if (usuarioRepositorio.findByNomeUsuario(requisicao.getUsuario_login()) != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário já existe");
@@ -28,25 +35,25 @@ public class UsuarioServico {
 
         Usuario usuario = new Usuario();
         usuario.setNomeUsuario(requisicao.getUsuario_login());
-        usuario.setSenha(requisicao.getUsuario_senha()); // Idealmente, aqui a senha seria hash
+        usuario.setSenha(requisicao.getUsuario_senha());
         usuario.setChaveApiBinance(requisicao.getUsuario_binanceApiKey());
         usuario.setChaveSecretaBinance(requisicao.getUsuario_binanceSecretKey());
-        usuario.setSaldoInicial(0.0); // Saldo inicial pode ser 0 ou definido
+        usuario.setSaldoInicial(0.0);
 
         ConfiguracaoUsuario config = new ConfiguracaoUsuario();
-        config.setPercentualLucro(requisicao.getPct_ganho()); // <<== CORREÇÃO AQUI: era setPercentualGanho
+        config.setPercentualLucro(requisicao.getPct_ganho());
         config.setPercentualPerda(requisicao.getPct_perda());
         config.setQuantidadePorOrdem(requisicao.getValor_compra());
 
-        usuario.setConfiguracao(config); // Associa a configuração ao usuário
-        usuarioRepositorio.save(usuario); // Persiste usuário e sua configuração devido a CascadeType.ALL
+        usuario.setConfiguracao(config);
+        usuarioRepositorio.save(usuario);
 
         return new UsuarioCriadoResposta("Usuário criado com sucesso", usuario.getIdentificador());
     }
 
     public LoginResposta fazerLogin(LoginRequisicao requisicao) {
         Usuario usuario = usuarioRepositorio.findByNomeUsuario(requisicao.getUsuario_login());
-        if (usuario == null || !usuario.getSenha().equals(requisicao.getUsuario_senha())) { // Comparação de senha simples, idealmente usar BCrypt
+        if (usuario == null || !usuario.getSenha().equals(requisicao.getUsuario_senha())) {
             return new LoginResposta(false, null, "Credenciais inválidas");
         }
         return new LoginResposta(true, usuario.getIdentificador(), "Login efetuado com sucesso");
@@ -57,9 +64,24 @@ public class UsuarioServico {
                 .map(usuario -> {
                     boolean hasKeys = usuario.getChaveApiBinance() != null && !usuario.getChaveApiBinance().isEmpty() &&
                                     usuario.getChaveSecretaBinance() != null && !usuario.getChaveSecretaBinance().isEmpty();
-                    // O saldo real dependeria de uma integração mais profunda com a carteira Binance.
-                    // Por simplicidade, usaremos o saldo inicial ou um valor mock.
-                    Double saldoAtual = usuario.getSaldoInicial(); // Ou obter da Binance se implementar
+
+                    Double saldoAtual = 0.0;
+                    if (hasKeys) {
+                        try {
+                            binanceServico.setApiKey(usuario.getChaveApiBinance());
+                            binanceServico.setSecretKey(usuario.getChaveSecretaBinance());
+
+                            saldoAtual = binanceServico.obterSaldoRealDaConta("USDT");
+                        } catch (Exception e) {
+                            System.err.println("Erro ao obter saldo da Binance para usuário " + usuarioId + ": " + e.getMessage());
+                            saldoAtual = 0.0;
+                        }
+                    }
+
+                    if (saldoAtual != null) {
+                        BigDecimal bd = new BigDecimal(saldoAtual).setScale(2, RoundingMode.HALF_UP);
+                        saldoAtual = bd.doubleValue();
+                    }
 
                     return new UsuarioDetalhesResposta(usuario.getIdentificador(), usuario.getNomeUsuario(), saldoAtual, hasKeys);
                 })
@@ -70,7 +92,7 @@ public class UsuarioServico {
         Usuario usuario = usuarioRepositorio.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
-        usuarioRepositorio.delete(usuario); // CascadeType.ALL em Usuario deve remover as entidades filhas
+        usuarioRepositorio.delete(usuario);
 
         return new MensagemResposta("Usuário excluído com sucesso");
     }
@@ -93,22 +115,18 @@ public class UsuarioServico {
 
         ConfiguracaoUsuario config = usuario.getConfiguracao();
         if (config == null) {
-            // Se não houver configuração existente, crie uma nova
+            // Se não houver configuração existente, cria uma nova
             config = new ConfiguracaoUsuario();
             usuario.setConfiguracao(config);
         }
 
         config.setQuantidadePorOrdem(requisicao.getValor_compra());
-        config.setPercentualLucro(requisicao.getPct_ganho()); // <<== CORREÇÃO AQUI TAMBÉM: era setPercentualGanho
+        config.setPercentualLucro(requisicao.getPct_ganho());
         config.setPercentualPerda(requisicao.getPct_perda());
 
-        configuracaoUsuarioRepositorio.save(config); // Salva a configuração atualizada ou nova
-        usuarioRepositorio.save(usuario); // Garante que a associação seja salva, se for nova
+        configuracaoUsuarioRepositorio.save(config);
+        usuarioRepositorio.save(usuario);
 
         return new MensagemResposta("Configuração atualizada com sucesso");
     }
-
-    // Adicione um método findByNomeUsuario no UsuarioRepositorio
-    // E no modelo Usuario, adicione um construtor @AllArgsConstructor e @NoArgsConstructor, se não tiver
-
 }

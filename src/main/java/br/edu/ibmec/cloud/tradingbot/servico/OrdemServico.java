@@ -62,20 +62,18 @@ public class OrdemServico {
         relatorio.setSimbolo(binanceResposta.getSimbolo());
         relatorio.setQuantidade(binanceResposta.getQuantidadeExecutada());
         relatorio.setDataOperacao(LocalDateTime.now());
-        relatorio.setStatus(binanceResposta.getStatus()); // Usar o status da Binance inicialmente
+        relatorio.setStatus(binanceResposta.getStatus());
 
-        // Atribuir os novos campos
-        relatorio.setTpOperacao(requisicao.getTp_operacao()); // <-- NOVO CAMPO
-        relatorio.setTipoOrdem(requisicao.getTipo());     // <-- NOVO CAMPO
+        relatorio.setTpOperacao(requisicao.getTp_operacao());
+        relatorio.setTipoOrdem(requisicao.getTipo());
 
         // Se for uma ordem de compra, registre o preço de compra
         if ("COMPRA".equalsIgnoreCase(requisicao.getTp_operacao())) {
             relatorio.setPrecoCompra(binanceResposta.getPrecoMedioExecucao());
-            relatorio.setStatus("EM_CARTEIRA"); // Setar status como "EM_CARTEIRA" para compras
+            relatorio.setStatus("EM_CARTEIRA");
         } else { // Se for uma ordem de venda, atualize a ordem de compra anterior
             relatorio.setPrecoVenda(binanceResposta.getPrecoMedioExecucao());
 
-            // Lógica para encontrar e atualizar a ordem de compra associada
             RelatorioOrdemUsuario ordemCompraExistente = usuario.getRelatoriosOrdens().stream()
                 .filter(o -> o.getSimbolo().equalsIgnoreCase(requisicao.getSimbolo()) && "EM_CARTEIRA".equalsIgnoreCase(o.getStatus()))
                 .findFirst() // Pega a primeira ordem de compra aberta para este símbolo
@@ -83,10 +81,9 @@ public class OrdemServico {
 
             if (ordemCompraExistente != null) {
                 ordemCompraExistente.setPrecoVenda(binanceResposta.getPrecoMedioExecucao());
-                ordemCompraExistente.setStatus("VENDIDA"); // Marca como vendida
+                ordemCompraExistente.setStatus("VENDIDA");
                 relatorioOrdemUsuarioRepositorio.save(ordemCompraExistente);
             }
-            // A nova ordem de venda também será salva, mas não como "EM_CARTEIRA"
             relatorio.setStatus("VENDIDA"); // Status da ordem de venda
         }
 
@@ -96,7 +93,6 @@ public class OrdemServico {
         usuario.getRelatoriosOrdens().add(relatorio);
         usuarioRepositorio.save(usuario);
 
-        // Montar a resposta da API
         return new OrdemCriadaResposta(
                 "Ordem criada com sucesso",
                 binanceResposta.getOrdemId(),
@@ -105,7 +101,7 @@ public class OrdemServico {
                 requisicao.getTp_operacao(),
                 binanceResposta.getQuantidadeExecutada(),
                 binanceResposta.getPrecoMedioExecucao(),
-                relatorio.getStatus(), // Status definido após a lógica de compra/venda
+                relatorio.getStatus(),
                 binanceResposta.getFills()
         );
     }
@@ -119,8 +115,8 @@ public class OrdemServico {
                         rel.getSimbolo(),
                         rel.getOrdemIdBinance(),
                         rel.getQuantidade(),
-                        rel.getTipoOrdem(), // <-- USANDO NOVO CAMPO
-                        rel.getTpOperacao(), // <-- USANDO NOVO CAMPO
+                        rel.getTipoOrdem(),
+                        rel.getTpOperacao(),
                         rel.getPrecoVenda() > 0 ? rel.getPrecoVenda() : rel.getPrecoCompra(),
                         rel.getStatus(),
                         null
@@ -143,8 +139,8 @@ public class OrdemServico {
                 relatorio.getSimbolo(),
                 relatorio.getOrdemIdBinance(),
                 relatorio.getQuantidade(),
-                relatorio.getTipoOrdem(), // <-- USANDO NOVO CAMPO
-                relatorio.getTpOperacao(), // <-- USANDO NOVO CAMPO
+                relatorio.getTipoOrdem(),
+                relatorio.getTpOperacao(),
                 relatorio.getPrecoVenda() > 0 ? relatorio.getPrecoVenda() : relatorio.getPrecoCompra(),
                 relatorio.getStatus(),
                 null

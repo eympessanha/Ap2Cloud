@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 
 @Data
 @Entity
-public class TickerUsuario {
+public class MoedaUsuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer identificador;

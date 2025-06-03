@@ -1,8 +1,8 @@
 package br.edu.ibmec.cloud.tradingbot.servico;
 
 import br.edu.ibmec.cloud.tradingbot.dto.BinanceApiDTOs.TickerResposta;
-import br.edu.ibmec.cloud.tradingbot.dto.MoedasAtivasDTOs.*;
-import br.edu.ibmec.cloud.tradingbot.modelo.TickerUsuario;
+import br.edu.ibmec.cloud.tradingbot.dto.MoedasDTOs.*;
+import br.edu.ibmec.cloud.tradingbot.modelo.MoedaUsuario;
 import br.edu.ibmec.cloud.tradingbot.modelo.Usuario;
 import br.edu.ibmec.cloud.tradingbot.repositorio.UsuarioRepositorio;
 import br.edu.ibmec.cloud.tradingbot.resposta.MensagemResposta;
@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-public class MoedasAtivasServico {
+public class MoedasServico {
 
     @Autowired
     private UsuarioRepositorio usuarioRepositorio;
@@ -43,14 +43,14 @@ public class MoedasAtivasServico {
         binanceServico.setSecretKey(usuario.getChaveSecretaBinance());
 
         List<String> simbolosAtivos = usuario.getTickers().stream()
-                .map(TickerUsuario::getSimbolo)
+                .map(MoedaUsuario::getSimbolo)
                 .collect(Collectors.toList());
 
         List<MoedaAtivaDetalheResposta> moedasDetalhes = new ArrayList<>();
         if (!simbolosAtivos.isEmpty()) {
             List<TickerResposta> tickersBinance = binanceServico.obterTickers(simbolosAtivos);
 
-            for (TickerUsuario tickerUsuario : usuario.getTickers()) {
+            for (MoedaUsuario tickerUsuario : usuario.getTickers()) {
                 Optional<TickerResposta> binanceTicker = tickersBinance.stream()
                         .filter(t -> t.getSimbolo().equals(tickerUsuario.getSimbolo()))
                         .findFirst();
@@ -84,20 +84,20 @@ public class MoedasAtivasServico {
         List<AdicionarMoedaIgnorada> ignoradas = new ArrayList<>();
 
         List<String> simbolosJaCadastrados = usuario.getTickers().stream()
-                .map(TickerUsuario::getSimbolo)
+                .map(MoedaUsuario::getSimbolo)
                 .collect(Collectors.toList());
 
         for (String simbolo : simbolosParaAdicionar) {
             if (simbolosJaCadastrados.contains(simbolo)) {
                 ignoradas.add(new AdicionarMoedaIgnorada(simbolo, "Moeda já cadastrada para este usuário"));
             } else {
-                TickerUsuario novoTicker = new TickerUsuario();
+                MoedaUsuario novoTicker = new MoedaUsuario();
                 novoTicker.setSimbolo(simbolo);
-                usuario.getTickers().add(novoTicker); // Adiciona ao proxy da coleção
+                usuario.getTickers().add(novoTicker);
                 adicionadas.add(simbolo);
             }
         }
-        usuarioRepositorio.save(usuario); // Salva as alterações no usuário e tickers devido a CascadeType.ALL
+        usuarioRepositorio.save(usuario);
 
         String message = String.format("%d moeda(s) adicionada(s) com sucesso", adicionadas.size());
         return new AdicionarMoedasAtivasResposta(message, adicionadas, ignoradas);
@@ -108,7 +108,7 @@ public class MoedasAtivasServico {
         Usuario usuario = usuarioRepositorio.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
-        Optional<TickerUsuario> tickerParaRemover = usuario.getTickers().stream()
+        Optional<MoedaUsuario> tickerParaRemover = usuario.getTickers().stream()
                 .filter(t -> t.getIdentificador().equals(moedaId))
                 .findFirst();
 
@@ -117,8 +117,7 @@ public class MoedasAtivasServico {
         }
 
         usuario.getTickers().remove(tickerParaRemover.get());
-        usuarioRepositorio.save(usuario); // Salva as alterações
-        // Com orphanRemoval=true, o TickerUsuario será removido do banco.
+        usuarioRepositorio.save(usuario);
 
         return new MensagemResposta("Moeda ativa removida com sucesso");
     }
@@ -128,7 +127,7 @@ public class MoedasAtivasServico {
         Usuario usuario = usuarioRepositorio.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
-        Optional<TickerUsuario> tickerParaRemover = usuario.getTickers().stream()
+        Optional<MoedaUsuario> tickerParaRemover = usuario.getTickers().stream()
                 .filter(t -> t.getSimbolo().equalsIgnoreCase(simbolo))
                 .findFirst();
 
@@ -137,7 +136,7 @@ public class MoedasAtivasServico {
         }
 
         usuario.getTickers().remove(tickerParaRemover.get());
-        usuarioRepositorio.save(usuario); // Salva as alterações
+        usuarioRepositorio.save(usuario); 
 
         return new MensagemResposta("Moeda " + simbolo + " removida com sucesso");
     }
